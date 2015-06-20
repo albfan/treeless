@@ -1,1 +1,4 @@
-tree -C $@ | less -R
+TREE_PAGER=${PAGER:-less}
+TREE_COMMAND=${TREE_COMAND:-tree}
+
+$TREE_COMMAND -C $@ | $TREE_PAGER -R
