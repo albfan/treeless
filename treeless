@@ -1,4 +1,34 @@
+#!/bin/bash
+
 TREE_PAGER=${PAGER:-less}
 TREE_COMMAND=${TREE_COMAND:-tree}
 
-$TREE_COMMAND -C $@ | $TREE_PAGER -R
+function parse_exclude {
+   local IGNORE=$(cat "$1" | sed -n '/^[^#]/s+/$++p;t;/^[^#]/p' | awk '{if(NR == 1) {printf $0} else {printf "|"$0}}')
+   if [ -n "$EXCLUDE_FILES" ]
+   then
+     local PREFIX="$EXCLUDE_FILES|"
+   fi 
+   EXCLUDE_FILES="$PREFIX$IGNORE"
+}
+
+function check_exclude {
+   if [ -f "$1" ]
+   then
+      parse_exclude "$1"
+   fi
+}
+
+VCS_DIR=$(git rev-parse --git-dir 2>/dev/null)
+
+if [ -n $VCS_DIR ]
+then
+   VCS_DIR=$(dirname "$VCS_DIR")
+   check_exclude "$VCS_DIR/.git/info/exclude"
+   check_exclude "$VCS_DIR/.gitignore"
+   if [ -n "$EXCLUDE_FILES" ]
+   then
+      EXCLUDE_OPTION="-I $EXCLUDE_FILES"
+   fi
+fi
+$TREE_COMMAND $EXCLUDE_OPTION -C $@ | $TREE_PAGER -R
